@@ -1,3 +1,5 @@
+import operator
+
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
@@ -25,6 +27,7 @@ def get_institutions():
     institutions_1 = institution_by_type(institutions, 1)
     institutions_2 = institution_by_type(institutions, 2)
     institutions_3 = institution_by_type(institutions, 3)
+
     return institutions, institutions_1, institutions_2, institutions_3
 
 
@@ -36,16 +39,37 @@ def institution_by_type(institutions, institution_type):
     return lst
 
 
+def institution_by_type2():
+    institutions = Institution.objects.all().values('name', 'description', 'type', 'categories__name', )
+
+    def take_type(elem):
+        return elem['type']
+
+    sorted_institutions = sorted(institutions, key=take_type)
+    institution_types = [t[0] for t in INSTITUTION_TYPE]
+
+    mydict = {}
+    for type in institution_types:
+        mydict[type] = []
+        for inst in sorted_institutions:
+            if inst['type'][0] == type:
+                mydict[type].append(inst)
+
+    # return sorted_institutions
+    return mydict
+
+
 class LandingPageView(View):
 
     def get(self, request):
         donated_bags = get_bags()
         supported_organizations_number = len(get_supported_organizations())
         institutions = get_institutions()
+        inst = institution_by_type2()
         return render(request, 'index.html', {
             'donated_bags': donated_bags, 'supported_organizations': supported_organizations_number,
             'institutions1': institutions[1], 'institutions2': institutions[2], 'institutions3': institutions[3],
-            'institutions': institutions[0]})
+            'institutions': institutions[0], 'inst': inst})
 
 
 class RegisterView(View):
